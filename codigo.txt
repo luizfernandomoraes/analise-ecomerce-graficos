@@ -1,6 +1,6 @@
 import pandas as pd
 import dash
-from dash import dcc, html
+from dash import dcc, html, Input, Output
 import plotly.express as px
 
 # ==============================
@@ -9,56 +9,82 @@ import plotly.express as px
 df = pd.read_csv("ecommerce_estatistica.csv")
 
 # ==============================
-# GRÁFICOS
-# ==============================
-
-fig_scatter = px.scatter(
-    df,
-    x="Preço",
-    y="Nota",
-    color="Gênero",
-    title="Preço vs Nota dos Produtos",
-    hover_data=["Título", "Marca"]
-)
-
-fig_bar = px.bar(
-    df.groupby("Marca", as_index=False)["Nota"].mean(),
-    x="Marca",
-    y="Nota",
-    title="Média de Nota por Marca"
-)
-
-fig_hist = px.histogram(
-    df,
-    x="Preço",
-    nbins=30,
-    title="Distribuição de Preços"
-)
-
-fig_vendas = px.bar(
-    df.groupby("Gênero", as_index=False)["Qtd_Vendidos"].sum(),
-    x="Gênero",
-    y="Qtd_Vendidos",
-    title="Quantidade Vendida por Gênero"
-)
-
-# ==============================
 # APP DASH
 # ==============================
 app = dash.Dash(__name__)
-app.title = "Dashboard E-commerce"
 
+# ==============================
+# LAYOUT
+# ==============================
 app.layout = html.Div([
     html.H1("Dashboard E-commerce", style={"textAlign": "center"}),
 
-    dcc.Graph(figure=fig_scatter),
-    dcc.Graph(figure=fig_bar),
-    dcc.Graph(figure=fig_hist),
-    dcc.Graph(figure=fig_vendas)
+    html.Div([
+        html.Label("Selecione o Gênero:"),
+        dcc.Dropdown(
+            options=[
+                {"label": genero, "value": genero}
+                for genero in df["Gênero"].unique()
+            ],
+            value=df["Gênero"].unique()[0],
+            id="filtro_genero"
+        )
+    ], style={"width": "40%", "margin": "auto"}),
+
+    dcc.Graph(id="grafico_scatter"),
+    dcc.Graph(id="grafico_bar"),
+    dcc.Graph(id="grafico_hist"),
+    dcc.Graph(id="grafico_vendas")
 ])
+
+# ==============================
+# CALLBACK
+# ==============================
+@app.callback(
+    Output("grafico_scatter", "figure"),
+    Output("grafico_bar", "figure"),
+    Output("grafico_hist", "figure"),
+    Output("grafico_vendas", "figure"),
+    Input("filtro_genero", "value")
+)
+def atualizar_graficos(genero_selecionado):
+    df_filtrado = df[df["Gênero"] == genero_selecionado]
+
+    fig_scatter = px.scatter(
+        df_filtrado,
+        x="Preço",
+        y="Nota",
+        color="Marca",
+        title="Relação entre Preço e Nota",
+        hover_data=["Título"]
+    )
+
+    fig_bar = px.bar(
+        df_filtrado.groupby("Marca", as_index=False)["Nota"].mean(),
+        x="Marca",
+        y="Nota",
+        title="Média de Nota por Marca"
+    )
+
+    fig_hist = px.histogram(
+        df_filtrado,
+        x="Preço",
+        nbins=30,
+        title="Distribuição de Preços"
+    )
+
+    fig_vendas = px.bar(
+        df_filtrado.groupby("Marca", as_index=False)["Qtd_Vendidos"].sum(),
+        x="Marca",
+        y="Qtd_Vendidos",
+        title="Quantidade Vendida por Marca"
+    )
+
+    return fig_scatter, fig_bar, fig_hist, fig_vendas
+
 
 # ==============================
 # EXECUÇÃO
 # ==============================
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run(debug=True)
