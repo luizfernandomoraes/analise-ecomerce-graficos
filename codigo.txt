@@ -1,0 +1,67 @@
+import pandas as pd
+import dash
+from dash import dcc, html
+import plotly.express as px
+
+# ==============================
+# LEITURA DO CSV
+# ==============================
+df = pd.read_csv("ecommerce_estatistica.csv")
+
+# ==============================
+# GRÁFICOS
+# ==============================
+
+# 1. Dispersão: Preço x Nota
+fig_scatter = px.scatter(
+    df,
+    x="Preço",
+    y="Nota",
+    color="Gênero",
+    title="Relação entre Preço e Nota dos Produtos",
+    hover_data=["Título", "Marca"]
+)
+
+# 2. Barras: Média de Nota por Marca
+fig_bar = px.bar(
+    df.groupby("Marca", as_index=False)["Nota"].mean(),
+    x="Marca",
+    y="Nota",
+    title="Média de Nota por Marca"
+)
+
+# 3. Histograma: Distribuição de Preços
+fig_hist = px.histogram(
+    df,
+    x="Preço",
+    nbins=30,
+    title="Distribuição de Preços"
+)
+
+# 4. Barras: Quantidade vendida por Gênero
+fig_vendas = px.bar(
+    df.groupby("Gênero", as_index=False)["Qtd_Vendidos"].sum(),
+    x="Gênero",
+    y="Qtd_Vendidos",
+    title="Quantidade Vendida por Gênero"
+)
+
+# ==============================
+# APP DASH
+# ==============================
+app = dash.Dash(__name__)
+
+app.layout = html.Div([
+    html.H1("Dashboard E-commerce", style={"textAlign": "center"}),
+
+    dcc.Graph(figure=fig_scatter),
+    dcc.Graph(figure=fig_bar),
+    dcc.Graph(figure=fig_hist),
+    dcc.Graph(figure=fig_vendas)
+])
+
+# ==============================
+# EXECUÇÃO
+# ==============================
+if __name__ == "__main__":
+    app.run(debug=True)
